@@ -26,12 +26,12 @@ O PNG original ainda não está disponível no checkout: o caminho `/Users/...` 
 `vercel.json` define o build `npm run build`, a saída `dist` e as funções Node. Se houver overrides manuais no painel, alinhe-os a esses valores. Os vídeos originais ficam em `media/`.
 
 1. Em Storage, criar um **Vercel Blob privado** e conectá-lo ao projeto, incluindo Production.
-2. Confirmar a variável **`BLOB_READ_WRITE_TOKEN`**, criada pela integração. Nunca colocar o token no frontend ou Git.
+2. A conexão atual usa **OIDC**, com `BLOB_STORE_ID` disponibilizado pela integração e identidade fornecida pelo runtime Vercel. Não é necessário criar `BLOB_READ_WRITE_TOKEN`. O SDK também aceita o token legado para conexões antigas. Nunca colocar credenciais no frontend ou Git.
 3. Fazer novo deploy após conectar o armazenamento.
 4. No totem, abrir o domínio HTTPS e autorizar a webcam.
 5. Percorrer os seis vídeos, permitir a câmera quando solicitada ao entrar na tela final, conferir a moldura e tocar em Tirar selfie e verificar a contagem de 5 a 1. Escanear o QR com outro aparelho e confirmar o download JPEG com a moldura.
 
-A foto é composta localmente em 1080 × 1920, espelhada como a prévia e com a moldura por cima. Depois da captura, a câmera é desligada. A imagem só é enviada ao servidor depois do clique e da contagem. O QR contém um link HTTPS assinado de download, válido por 24 horas, sem expor credenciais. Uploads aceitam JPEG de até 3 MiB, da mesma origem. Configure limites de requisições no Vercel Firewall para o endpoint público de upload conforme o uso do evento.
+A foto é composta localmente em 1080 × 1920, espelhada como a prévia e com a moldura por cima. Depois da captura, a câmera é desligada. A imagem só é enviada ao servidor depois do clique e da contagem. O QR contém um link HTTPS de download com identificador aleatório não enumerável, válido por 24 horas, sem expor credenciais. A expiração faz parte do caminho privado imutável do objeto; alterá-la aponta para um arquivo inexistente. Links antigos assinados com token continuam compatíveis enquanto houver o token original. Uploads aceitam JPEG de até 3 MiB, da mesma origem. Configure limites de requisições no Vercel Firewall para o endpoint público de upload conforme o uso do evento.
 
 **Validade do link não significa exclusão:** os objetos privados permanecem no Blob até a equipe apagá-los. Defina a rotina de exclusão das fotos do evento no armazenamento. Quem tiver o QR pode baixar a foto durante a validade.
 
@@ -41,6 +41,6 @@ A foto é composta localmente em 1080 × 1920, espelhada como a prévia e com a 
 
 ## Se o QR code não aparecer
 
-A tela distingue armazenamento ausente (HTTP 503), falha do Blob/token ou loja incompatível (502), publicação sem API (404), envio bloqueado (403), imagem grande demais (413) e falha de conexão. A selfie permanece no canvas e pode ser reenviada sem nova captura. Conectar o Blob exige um novo deploy para injetar a variável no servidor. O código não produz um QR local que só funcionaria no totem: o upload precisa ser confirmado antes da geração do link.
+A tela distingue armazenamento ausente (HTTP 503), falha de autenticação OIDC ou loja incompatível (502), publicação sem API (404), envio bloqueado (403), imagem grande demais (413) e falha de conexão. A selfie permanece no canvas e pode ser reenviada sem nova captura. Conectar o Blob exige um novo deploy para disponibilizar BLOB_STORE_ID e a identidade OIDC no servidor. O código não produz um QR local que só funcionaria no totem: o upload precisa ser confirmado antes da geração do link.
 
 A webcam inicia ao entrar na última tela, sem botão Ativar câmera. O único botão de captura é Tirar selfie; se for necessário repetir a permissão, esse mesmo botão tenta abrir a webcam antes da contagem. A permissão nativa do navegador continua obrigatória.

@@ -13,7 +13,7 @@ test('storage unavailable, cross-origin uploads, invalid JPEG and expired links 
     process.env.BLOB_READ_WRITE_TOKEN='test-only';
     res=response();await upload({method:'POST',headers:{origin:'https://other.example',host:'museum.example'}},res);assert.equal(res.code,403);
     res=response();await upload({method:'POST',headers:{origin:'https://museum.example',host:'museum.example','content-type':'application/json'},body:{image:Buffer.from('not a photo').toString('base64')}},res);assert.equal(res.code,415);
-    const id='12345678-1234-1234-1234-123456789abc',expires=String(Date.now()-1000);
+    const id='12345678-1234-4234-8234-123456789abc',expires=String(Date.now()-1000);
     const signature=createHmac('sha256','test-only').update(`${id}:${expires}`).digest('hex');
     res=response();await require('../api/download')({method:'GET',query:{id,expires,signature}},res);assert.equal(res.code,410);
     res=response();await require('../api/download')({method:'GET',query:{id,expires,signature:'0'.repeat(64)}},res);assert.equal(res.code,403);

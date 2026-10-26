@@ -127,7 +127,7 @@ async function upload() {
     if (!response.ok) {
       const messages = {
         503: 'O armazenamento de fotos não está configurado. Conecte um Vercel Blob privado ao projeto e refaça o deploy.',
-        502: 'O armazenamento recusou o envio. Confira o token e se o Vercel Blob conectado é privado.',
+        502: 'O armazenamento recusou o envio. Confira a conexão OIDC e se o Vercel Blob conectado é privado.',
         413: 'A foto excedeu o limite de envio. Tente tirar outra selfie.',
         403: 'O servidor bloqueou o envio. Abra o site pelo endereço principal da Vercel.',
         404: 'O servidor de fotos não está disponível nesta publicação. Confira o deploy na Vercel.'

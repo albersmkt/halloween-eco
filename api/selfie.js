@@ -1,10 +1,9 @@
-const {randomUUID, createHmac} = require('node:crypto');
+const {randomUUID} = require('node:crypto');
 const MAX_BYTES = 3 * 1024 * 1024;
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).end();
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return res.status(503).json({error:'Photo storage is not configured'});
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) return res.status(503).json({error:'Photo storage is not configured'});
   if (req.headers.origin !== `https://${req.headers.host}` && req.headers.origin !== `http://${req.headers.host}`) return res.status(403).end();
   if (req.headers['content-type'] !== 'application/json') return res.status(415).end();
   if (Number(req.headers['content-length']) > 4 * 1024 * 1024) return res.status(413).end();
@@ -27,10 +26,12 @@ module.exports = async (req, res) => {
     if (body.length < 4 || body[0] !== 0xff || body[1] !== 0xd8 || body[body.length-2] !== 0xff || body[body.length-1] !== 0xd9) return res.status(415).end();
     const {put} = await import('@vercel/blob');
     const id = randomUUID();
-    await put(`selfies/${id}.jpg`, body, {access:'private', contentType:'image/jpeg', addRandomSuffix:false});
     const expires = Date.now() + 24*60*60*1000;
-    const signature = createHmac('sha256', token).update(`${id}:${expires}`).digest('hex');
-    return res.status(201).json({downloadPath:`/api/download?id=${id}&expires=${expires}&signature=${signature}`});
+    // The SDK resolves the connected store's OIDC credentials in the Vercel runtime.
+    // The random UUID is a bearer capability; expiry is part of the immutable path.
+    // Changing the expiry therefore points to a different, nonexistent object.
+    await put(`selfies/${expires}/${id}.jpg`, body, {access:'private', contentType:'image/jpeg', addRandomSuffix:false});
+    return res.status(201).json({downloadPath:`/api/download?id=${id}&expires=${expires}`});
   } catch {
     return res.status(502).json({error:'Photo upload failed'});
   }
