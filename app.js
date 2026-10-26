@@ -1,16 +1,7 @@
 const scenes = [...document.querySelectorAll('.scene')];
 const status = document.querySelector('#status');
-const sound = document.querySelector('#sound');
 let active = 0;
 let busy = false;
-let soundEnabled = false;
-sound.addEventListener('click', () => {
-  soundEnabled = !soundEnabled;
-  scenes.forEach(scene => { scene.querySelector('video').muted = !soundEnabled; });
-  sound.setAttribute('aria-pressed', String(soundEnabled));
-  sound.setAttribute('aria-label', soundEnabled ? 'Desativar som' : 'Ativar som');
-  sound.innerHTML = `${soundEnabled ? 'Som ligado' : 'Som desligado'} <span>↗</span>`;
-});
 scenes.forEach((scene, index) => {
   const video = scene.querySelector('video');
   const button = scene.querySelector('.advance');
@@ -28,9 +19,6 @@ scenes.forEach((scene, index) => {
       button.disabled = false;
       status.textContent = 'Não foi possível reproduzir. Clique para tentar novamente.';
     }
-  });
-  video.addEventListener('timeupdate', () => {
-    scene.querySelector('.progress div').style.width = `${video.duration ? video.currentTime / video.duration * 100 : 0}%`;
   });
   video.addEventListener('error', () => {
     busy = false;
@@ -50,7 +38,7 @@ scenes.forEach((scene, index) => {
     } else {
       scene.classList.remove('playing');
       button.disabled = false;
-      button.innerHTML = 'Rever <span>↻</span>';
+      button.setAttribute('aria-label', 'Rever');
       status.textContent = 'Você chegou ao fim dos dois primeiros capítulos.';
     }
   });
