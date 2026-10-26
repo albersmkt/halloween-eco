@@ -11,6 +11,7 @@ const retry = $('#retry-upload');
 let stream;
 let imageBlob;
 let counting = false;
+let frameReady = false;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 function stopCamera() {
   stream?.getTracks().forEach(track => track.stop());
@@ -22,31 +23,49 @@ async function activateCamera() {
   retake.disabled = true;
   message.textContent = 'Preparando a câmera…';
   try {
-    // Never capture without the supplied frame being ready.
-    await frame.decode();
+    if (window.isSecureContext === false) throw new Error('insecure');
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
     stopCamera();
-    stream = await navigator.mediaDevices.getUserMedia({video: {facingMode:'user', width:{ideal:1920}, height:{ideal:1080}}, audio:false});
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({video: {facingMode:'user', width:{ideal:1920}, height:{ideal:1080}}, audio:false});
+    } catch (error) {
+      if (error.name !== 'OverconstrainedError') throw error;
+      stream = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+    }
     camera.srcObject = stream;
-    await camera.play();
     camera.hidden = false;
-    frame.hidden = false;
+    await camera.play();
+    frameReady = false;
+    try {
+      await frame.decode();
+      frameReady = true;
+    } catch {
+      // Missing artwork must not prevent camera access or an unframed selfie.
+    }
+    frame.hidden = !frameReady;
     photo.hidden = true;
     $('#qr-panel').hidden = true;
     retry.hidden = true;
     retake.hidden = true;
     activate.hidden = true;
     capture.hidden = false;
-    message.textContent = 'Posicione-se na moldura. A foto será tirada após 5 segundos.';
+    message.textContent = frameReady
+      ? 'Posicione-se na moldura. A foto será tirada após 5 segundos.'
+      : 'Câmera pronta. A foto será tirada após 5 segundos, ainda sem a moldura.';
   } catch (error) {
     stopCamera();
-    message.textContent = !frame.complete || !frame.naturalWidth
-      ? 'A moldura da selfie ainda não está disponível.'
-      : error.name === 'NotAllowedError'
-      ? 'Permita o acesso à câmera no navegador e tente novamente.'
-      : error.name === 'NotFoundError'
-      ? 'Conecte a webcam ao totem e tente novamente.'
-      : 'Não foi possível iniciar a câmera. Confira a webcam e utilize HTTPS.';
+    camera.hidden = true;
+    activate.hidden = false;
+    capture.hidden = true;
+    const errors = {
+      NotAllowedError: 'Acesso à câmera bloqueado. Nas permissões deste site, permita a câmera e tente novamente.',
+      NotFoundError: 'Nenhuma câmera foi encontrada. Conecte a webcam ao totem e tente novamente.',
+      NotReadableError: 'A câmera está ocupada ou indisponível. Feche outros aplicativos que usam a webcam e tente novamente.',
+      SecurityError: 'O navegador bloqueou a câmera. Confira as permissões deste site.',
+      insecure: 'Abra o site pelo endereço HTTPS para ativar a câmera.',
+      unsupported: 'Este navegador não disponibiliza acesso à câmera. Abra o site diretamente no Chrome ou Edge atualizado.'
+    };
+    message.textContent = errors[error.name] || errors[error.message] || 'Não foi possível iniciar a câmera. Confira a conexão da webcam e tente novamente.';
   } finally {
     activate.disabled = false;
     retake.disabled = false;
@@ -103,7 +122,7 @@ capture.addEventListener('click', async () => {
     context.scale(-1, 1);
     context.drawImage(camera, (width-w)/2, (height-h)/2, w, h);
     context.restore();
-    context.drawImage(frame, 0, 0, width, height);
+    if (frameReady) context.drawImage(frame, 0, 0, width, height);
     imageBlob = await new Promise(resolve => photo.toBlob(resolve, 'image/jpeg', .9));
     if (!imageBlob) throw new Error('capture');
     photo.hidden = false;

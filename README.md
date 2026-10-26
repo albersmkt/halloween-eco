@@ -17,7 +17,7 @@ O servidor Python serve `dist` na porta 3000 para verificar os arquivos estátic
 
 ## Moldura necessária
 
-Salvar a arte original em **`media/selfie-frame.png`**, com o centro transparente. A imagem enviada na conversa não foi disponibilizada como arquivo para este ambiente. Até esse arquivo ser incluído, a interface explica que a moldura está indisponível e não inicia captura sem ela. Não foi criada uma arte substituta.
+Salvar a arte original em **`media/selfie-frame.png`**, com o centro transparente. A imagem enviada na conversa não foi disponibilizada como arquivo para este ambiente. Até esse arquivo ser incluído, a câmera funciona e permite tirar a selfie sem moldura, com aviso explícito na tela. A ausência da arte não bloqueia a webcam. Não foi criada uma arte substituta.
 
 ## Vercel
 

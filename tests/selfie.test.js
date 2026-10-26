@@ -48,3 +48,19 @@ test('capture waits five seconds, mirrors camera and composites frame into JPEG'
   assert.deepEqual(delays,[1000,1000,1000,1000,1000]);
   assert.deepEqual(draws,[camera,frame]);assert(stopped);assert.equal(element('#qr-panel').hidden,false);
 });
+
+test('missing frame does not block webcam; permission error is not masked by artwork failure', async () => {
+  for (const denied of [false,true]) {
+    const elements={};
+    const element=id=>elements[id]??={hidden:true,disabled:false,listeners:{},addEventListener(n,f){this.listeners[n]=f}};
+    element('#selfie-frame').decode=async()=>{throw new Error('missing frame')};
+    element('#camera').play=async()=>{};
+    let requested=false;
+    const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
+    vm.runInNewContext(source,{document:{querySelector:element},navigator:{mediaDevices:{getUserMedia:async()=>{requested=true;if(denied)throw Object.assign(new Error('denied'),{name:'NotAllowedError'});return{getTracks:()=>[{stop(){}}]}}}},window:{isSecureContext:true,addEventListener(){}},setTimeout});
+    await element('#activate-camera').listeners.click();
+    assert(requested);
+    if(denied){assert.match(element('#selfie-status').textContent,/Acesso à câmera bloqueado/);assert.equal(element('#activate-camera').hidden,false)}
+    else {assert.equal(element('#camera').hidden,false);assert.equal(element('#capture').hidden,false);assert.match(element('#selfie-status').textContent,/sem a moldura/)}
+  }
+});
