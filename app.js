@@ -33,7 +33,7 @@ scenes.forEach((scene, index) => {
       active = index + 1;
       const next = scenes[active];
       next.inert = false;
-      next.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+      next.scrollIntoView({behavior: 'instant', block: 'start'});
       next.querySelector('button').focus({preventScroll:true});
     } else {
       scene.classList.remove('playing');
