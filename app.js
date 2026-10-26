@@ -40,7 +40,8 @@ scenes.forEach((scene, index) => {
       const selfie = document.querySelector('#selfie');
       selfie.inert = false;
       selfie.scrollIntoView({behavior: 'instant', block: 'start'});
-      document.querySelector('#activate-camera').focus({preventScroll: true});
+      document.querySelector('#capture').focus({preventScroll: true});
+      window.dispatchEvent?.(new Event('selfie:enter'));
     }
   });
 });

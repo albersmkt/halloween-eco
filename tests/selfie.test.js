@@ -24,15 +24,16 @@ test('six video sections advance instantly to selfie only after completion', asy
     const handlers={},clicks={},button={disabled:false,addEventListener:(n,f)=>clicks[n]=f,focus(){}},video={currentTime:0,addEventListener:(n,f)=>handlers[n]=f,play:async()=>{video.played=true}};
     return {handlers,clicks,button,video,querySelector:s=>s==='video'?video:button,classList:{add(){},remove(){}},scrollIntoView(options){this.options=options}};
   });
+  let cameraEntry=false;
   const selfie={scrollIntoView(options){this.options=options}},activate={focus(){this.focused=true}};
-  vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelectorAll:()=>[...scenes,{querySelector:()=>null}],querySelector:s=>s==='#selfie'?selfie:s==='#activate-camera'?activate:{}},window:{addEventListener(){},scrollTo(){}},history:{}});
+  vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelectorAll:()=>[...scenes,{querySelector:()=>null}],querySelector:s=>s==='#selfie'?selfie:s==='#capture'?activate:{}},window:{addEventListener(){},scrollTo(){},dispatchEvent(event){cameraEntry=event.type==='selfie:enter'}},Event,history:{}});
   for(let i=0;i<6;i++){
     await scenes[i].clicks.click();assert(scenes[i].video.played);
     if(i<5)assert(!scenes[i+1].options);else assert(!selfie.options);
     scenes[i].handlers.ended();
     assert.equal((i<5?scenes[i+1]:selfie).options.behavior,'instant');
   }
-  assert.equal(selfie.inert,false);assert(activate.focused);
+  assert.equal(selfie.inert,false);assert(activate.focused);assert(cameraEntry);
 });
 for (const uploadStatus of [201,503,502]) test(`capture composites frame; upload HTTP ${uploadStatus} has correct UI`, async () => {
   const elements={},draws=[],delays=[];
@@ -41,10 +42,10 @@ for (const uploadStatus of [201,503,502]) test(`capture composites frame; upload
   const photo=element('#photo');Object.assign(photo,{width:1080,height:1920,getContext:()=>({save(){},restore(){},translate(){},scale(x){assert.equal(x,-1)},drawImage(image){draws.push(image)}}),toBlob:fn=>fn(new Blob(['photo']))});
   const frame=element('#selfie-frame');Object.assign(frame,{decode:async()=>{},complete:true,naturalWidth:941});
   let stopped=false;
-  const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
+  const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'') + "\n document.querySelector('#test-activation').addEventListener('click', ensureCamera);";
   vm.runInNewContext(source,{document:{querySelector:element},navigator:{mediaDevices:{getUserMedia:async()=>({active:true,getTracks:()=>[{stop(){stopped=true}}]})}},window:{addEventListener(){}},location:{origin:'https://museum.example',reload(){}},setTimeout(fn,ms){delays.push(ms);fn()},Blob,FileReader:class{readAsDataURL(){this.result='data:image/jpeg;base64,Zm9v';this.onload()}},fetch:async()=>({ok:uploadStatus===201,status:uploadStatus,json:async()=>({downloadPath:'/api/download?id=test'})}),URL,QRCode:{toCanvas:async()=>{}}});
-  await element('#activate-camera').listeners.click();
   await element('#capture').listeners.click();
+  assert(!fs.readFileSync('index.html','utf8').includes('id="activate-camera"'));
   assert.deepEqual(delays,[1000,1000,1000,1000,1000]);
   assert.deepEqual(draws,[camera,frame]);assert(stopped);assert.equal(element('#qr-panel').hidden,uploadStatus!==201);
   if(uploadStatus===503)assert.match(element('#selfie-status').textContent,/não está configurado/);
@@ -59,11 +60,11 @@ test('missing frame does not block webcam; permission error is not masked by art
     element('#selfie-frame').decode=async()=>{throw new Error('missing frame')};
     element('#camera').play=async()=>{};
     let requested=false;
-    const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
-    vm.runInNewContext(source,{document:{querySelector:element},navigator:{mediaDevices:{getUserMedia:async()=>{requested=true;if(denied)throw Object.assign(new Error('denied'),{name:'NotAllowedError'});return{getTracks:()=>[{stop(){}}]}}}},window:{isSecureContext:true,addEventListener(){}},setTimeout});
-    await element('#activate-camera').listeners.click();
+    const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'') + "\n document.querySelector('#test-activation').addEventListener('click', ensureCamera);";
+    vm.runInNewContext(source,{document:{querySelector:element},navigator:{mediaDevices:{getUserMedia:async()=>{requested=true;if(denied)throw Object.assign(new Error('denied'),{name:'NotAllowedError'});return{active:true,getTracks:()=>[{stop(){}}]}}}},window:{isSecureContext:true,addEventListener(){}},setTimeout});
+    await element('#test-activation').listeners.click();
     assert(requested);
-    if(denied){assert.match(element('#selfie-status').textContent,/Acesso à câmera bloqueado/);assert.equal(element('#activate-camera').hidden,false)}
+    if(denied){assert.match(element('#selfie-status').textContent,/Acesso à câmera bloqueado/);assert.equal(element('#capture').hidden,false)}
     else {assert.equal(element('#camera').hidden,false);assert.equal(element('#capture').hidden,false);assert.match(element('#selfie-status').textContent,/sem a moldura/)}
   }
 });
@@ -74,7 +75,7 @@ test('installed frame restores automatically without a visitor file picker', asy
     const tx={objectStore:()=>({get(){const op={result:original};queueMicrotask(()=>tx.oncomplete());return op}})};return tx;
   }};
   const indexedDB={open(){const request={result:db};queueMicrotask(()=>request.onsuccess());return request}};
-  const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
+  const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'') + "\n document.querySelector('#test-activation').addEventListener('click', ensureCamera);";
   const elements={};const element=id=>elements[id]??={hidden:true,listeners:{},addEventListener(n,f){this.listeners[n]=f}};
   element('#selfie-frame').decode=async()=>{if(!element('#selfie-frame').src?.startsWith('blob:'))throw Error('not found')};
   vm.runInNewContext(source,{document:{querySelector:element},indexedDB,window:{addEventListener(){}},URL,setTimeout});

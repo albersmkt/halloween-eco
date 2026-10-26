@@ -4,7 +4,6 @@ const camera = $('#camera');
 const photo = $('#photo');
 const frame = $('#selfie-frame');
 const message = $('#selfie-status');
-const activate = $('#activate-camera');
 const capture = $('#capture');
 const retake = $('#retake');
 const retry = $('#retry-upload');
@@ -68,7 +67,7 @@ function stopCamera() {
   camera.srcObject = null;
 }
 async function activateCamera() {
-  activate.disabled = true;
+  capture.disabled = true;
   retake.disabled = true;
   message.textContent = 'Preparando a câmera…';
   try {
@@ -91,7 +90,6 @@ async function activateCamera() {
     $('#photo-download').hidden = true;
     retry.hidden = true;
     retake.hidden = true;
-    activate.hidden = true;
     capture.hidden = false;
     message.textContent = frameReady
       ? 'Posicione-se na moldura. A foto será tirada após 5 segundos.'
@@ -99,8 +97,7 @@ async function activateCamera() {
   } catch (error) {
     stopCamera();
     camera.hidden = true;
-    activate.hidden = false;
-    capture.hidden = true;
+    capture.hidden = false;
     const errors = {
       NotAllowedError: 'Acesso à câmera bloqueado. Nas permissões deste site, permita a câmera e tente novamente.',
       NotFoundError: 'Nenhuma câmera foi encontrada. Conecte a webcam ao totem e tente novamente.',
@@ -111,7 +108,7 @@ async function activateCamera() {
     };
     message.textContent = errors[error.name] || errors[error.message] || 'Não foi possível iniciar a câmera. Confira a conexão da webcam e tente novamente.';
   } finally {
-    activate.disabled = false;
+    capture.disabled = false;
     retake.disabled = false;
   }
 }
@@ -156,12 +153,24 @@ async function upload() {
     retake.disabled = false;
   }
 }
-activate.addEventListener('click', activateCamera);
-retake.addEventListener('click', activateCamera);
+let cameraStarting;
+function ensureCamera() {
+  if (!cameraStarting) cameraStarting = activateCamera().finally(() => {cameraStarting = null;});
+  return cameraStarting;
+}
+window.addEventListener('selfie:enter', ensureCamera);
+retake.addEventListener('click', () => capture.click());
 retry.addEventListener('click', upload);
 capture.addEventListener('click', async () => {
-  if (counting || !stream || camera.readyState < 2) return;
+  if (counting) return;
   counting = true;
+  if (!stream?.active || camera.readyState < 2) {
+    await ensureCamera();
+    if (!stream?.active || camera.readyState < 2) {
+      counting = false;
+      return;
+    }
+  }
   capture.disabled = true;
   $('#restart').disabled = true;
   message.textContent = 'Olhe para a câmera!';
@@ -192,10 +201,9 @@ capture.addEventListener('click', async () => {
     stopCamera();
     await upload();
   } catch {
-    message.textContent = 'A câmera foi interrompida. Ative-a novamente para tentar outra foto.';
+    message.textContent = 'A câmera foi interrompida. Toque em Tirar selfie para tentar novamente.';
     stopCamera();
-    activate.hidden = false;
-    capture.hidden = true;
+    capture.hidden = false;
   } finally {
     $('#countdown').textContent = '';
     counting = false;
