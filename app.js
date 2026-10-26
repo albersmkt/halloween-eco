@@ -39,7 +39,7 @@ scenes.forEach((scene, index) => {
       scene.classList.remove('playing');
       button.disabled = false;
       button.setAttribute('aria-label', 'Rever');
-      status.textContent = 'Você chegou ao fim dos dois primeiros capítulos.';
+      status.textContent = 'Você chegou ao fim dos seis capítulos.';
     }
   });
 });
