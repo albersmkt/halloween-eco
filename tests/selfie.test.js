@@ -68,23 +68,19 @@ test('missing frame does not block webcam; permission error is not masked by art
   }
 });
 
-test('selecting PNG saves exact file in IndexedDB and restores frame on reload', async () => {
-  let saved;
-  const db={close(){},objectStoreNames:{},createObjectStore(){},transaction(){
-    const tx={objectStore:()=>({get(){const op={result:saved};queueMicrotask(()=>tx.oncomplete());return op},put(value){saved=value;const op={};queueMicrotask(()=>tx.oncomplete());return op}})};return tx;
+test('installed frame restores automatically without a visitor file picker', async () => {
+  const original=new Blob(['original artwork'],{type:'image/png'});
+  const db={close(){},createObjectStore(){},transaction(){
+    const tx={objectStore:()=>({get(){const op={result:original};queueMicrotask(()=>tx.oncomplete());return op}})};return tx;
   }};
   const indexedDB={open(){const request={result:db};queueMicrotask(()=>request.onsuccess());return request}};
   const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
-  function page(){
-    const elements={};const element=id=>elements[id]??={hidden:true,listeners:{},addEventListener(n,f){this.listeners[n]=f}};
-    element('#selfie-frame').decode=async()=>{if(!element('#selfie-frame').src?.startsWith('blob:'))throw Error('not found')};
-    vm.runInNewContext(source,{document:{querySelector:element},indexedDB,window:{addEventListener(){}},URL,setTimeout});return element;
-  }
-  const first=page();await new Promise(resolve=>setImmediate(resolve));
-  assert.equal(first('#choose-frame').hidden,false);
-  const original=new Blob(['original artwork'],{type:'image/png'});
-  await first('#frame-file').listeners.change({target:{files:[original]}});
-  assert.equal(saved,original);assert.match(first('#selfie-frame').src,/^blob:/);assert.equal(first('#selfie-frame').hidden,false);
-  const second=page();await new Promise(resolve=>setImmediate(resolve));
-  assert.match(second('#selfie-frame').src,/^blob:/);assert.equal(second('#selfie-frame').hidden,false);assert.equal(second('#choose-frame').hidden,true);
+  const elements={};const element=id=>elements[id]??={hidden:true,listeners:{},addEventListener(n,f){this.listeners[n]=f}};
+  element('#selfie-frame').decode=async()=>{if(!element('#selfie-frame').src?.startsWith('blob:'))throw Error('not found')};
+  vm.runInNewContext(source,{document:{querySelector:element},indexedDB,window:{addEventListener(){}},URL,setTimeout});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.match(element('#selfie-frame').src,/^blob:/);
+  assert.equal(element('#selfie-frame').hidden,false);
+  const html=fs.readFileSync('index.html','utf8');
+  assert(!html.includes('choose-frame'));assert(!html.includes('type="file"'));
 });

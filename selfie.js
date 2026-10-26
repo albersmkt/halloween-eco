@@ -14,7 +14,7 @@ let counting = false;
 let frameReady = false;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 let frameObjectURL;
-function frameStore(mode, value) {
+function frameStore() {
   return new Promise((resolve, reject) => {
     if (!globalThis.indexedDB) return resolve(undefined);
     const request = indexedDB.open('ecos-selfie-config', 1);
@@ -22,9 +22,9 @@ function frameStore(mode, value) {
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const db = request.result;
-      const tx = db.transaction('settings', mode);
+      const tx = db.transaction('settings', 'readonly');
       const store = tx.objectStore('settings');
-      const operation = mode === 'readonly' ? store.get('frame') : store.put(value, 'frame');
+      const operation = store.get('frame');
       tx.oncomplete = () => { db.close(); resolve(operation.result); };
       tx.onerror = () => { db.close(); reject(tx.error); };
       tx.onabort = () => { db.close(); reject(tx.error); };
@@ -48,37 +48,18 @@ async function useFrame(blob) {
   }
 }
 async function initializeFrame() {
+  // Prefer the fixed project asset, retaining the frame already installed on this kiosk.
   try {
-    const saved = await frameStore('readonly');
-    if (saved) await useFrame(saved);
-    else { await frame.decode(); frameReady = true; frame.hidden = false; }
-  } catch { frameReady = false; }
-  $('#choose-frame').hidden = frameReady;
-}
-$('#choose-frame').addEventListener('click', () => $('#frame-file').click());
-$('#frame-file').addEventListener('change', async event => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  if (file.type !== 'image/png' || file.size > 12 * 1024 * 1024) {
-    message.textContent = 'Selecione a moldura em PNG de até 12 MB.';
+    await frame.decode();
+    frameReady = true;
+    frame.hidden = false;
     return;
-  }
+  } catch {}
   try {
-    await useFrame(file);
-    // Apply a newly selected frame to the next capture, not over an old photo.
-    let persisted = false;
-    if (globalThis.indexedDB) {
-      try { await frameStore('readwrite', file); persisted = true; } catch {}
-    }
-    message.textContent = persisted
-      ? 'Moldura aplicada e salva neste navegador. Ative a câmera ou tire outra selfie.'
-      : 'Moldura aplicada nesta sessão. Ative a câmera ou tire outra selfie.';
-    $('#choose-frame').hidden = true;
-  } catch {
-    message.textContent = 'Não foi possível ler a moldura. Selecione o PNG original.';
-  }
-  event.target.value = '';
-});
+    const saved = await frameStore();
+    if (saved) await useFrame(saved);
+  } catch { frameReady = false; }
+}
 const frameInitialization = initializeFrame();
 
 function stopCamera() {

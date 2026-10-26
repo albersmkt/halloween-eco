@@ -17,12 +17,9 @@ O servidor Python serve `dist` na porta 3000 para verificar os arquivos estátic
 
 ## Moldura necessária
 
-A moldura pode ser instalada de duas formas:
+A moldura é aplicada automaticamente à prévia e incorporada ao JPEG. Não há seletor de arquivo para visitantes. O arquivo fixo esperado é `media/selfie-frame.png`, com centro transparente. Como compatibilidade, o totem também restaura automaticamente a arte já instalada em IndexedDB nesse navegador nas versões anteriores.
 
-- Publicar a arte original como `media/selfie-frame.png`, com o centro transparente.
-- Na tela final do totem, quando a arte estiver ausente, clicar **Carregar moldura** e selecionar o PNG original no próprio computador. O navegador salva esse arquivo em IndexedDB e restaura-o nas próximas visitas ao mesmo domínio. Essa seleção é local ao navegador; não envia o arquivo ao GitHub nem o distribui a outros totens. A foto capturada inclui a arte selecionada.
-
-O caminho `/Users/...` informado no chat pertence ao computador do usuário e não é acessível nesta máquina de desenvolvimento. Não foi criada uma arte substituta. Se o armazenamento do navegador estiver bloqueado, a moldura funciona somente na sessão atual. A câmera também permite selfie sem moldura, com aviso explícito.
+O PNG original ainda não está disponível no checkout: o caminho `/Users/...` pertence ao computador do usuário. Até o arquivo ser incluído no projeto, a arte já instalada só é restaurada no mesmo navegador e domínio. Outros dispositivos e navegadores sem essa configuração continuam sem moldura; não foi criada uma arte substituta.
 
 ## Vercel
 
