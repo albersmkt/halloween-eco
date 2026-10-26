@@ -87,7 +87,6 @@ async function activateCamera() {
     frame.hidden = !frameReady;
     photo.hidden = true;
     $('#qr-panel').hidden = true;
-    $('#photo-download').hidden = true;
     retry.hidden = true;
     retake.hidden = true;
     capture.hidden = false;
@@ -137,12 +136,10 @@ async function upload() {
     const {downloadPath} = await response.json();
     const url = new URL(downloadPath, location.origin);
     if (url.origin !== location.origin || url.pathname !== '/api/download') throw new Error('url');
-    $('#photo-download').href = url.href;
-    $('#photo-download').hidden = false;
     try {
       await QRCode.toCanvas($('#qr'), url.href, {width:320, margin:4, errorCorrectionLevel:'M'});
     } catch {
-      throw new Error('A foto foi enviada, mas o QR code não pôde ser desenhado. Use o botão Baixar selfie.');
+      throw new Error('A foto foi enviada, mas o QR code não pôde ser desenhado. Toque em Gerar QR code novamente.');
     }
     $('#qr-panel').hidden = false;
     message.textContent = 'Sua selfie está pronta! O link funciona por 24 horas.';
@@ -151,6 +148,7 @@ async function upload() {
     retry.hidden = false;
   } finally {
     retake.disabled = false;
+    window.dispatchEvent?.(new Event('selfie:result'));
   }
 }
 let cameraStarting;
@@ -213,3 +211,5 @@ capture.addEventListener('click', async () => {
 });
 $('#restart').addEventListener('click', () => {stopCamera(); location.reload();});
 window.addEventListener('pagehide', stopCamera);
+
+window.addEventListener('kiosk:reset', stopCamera);
