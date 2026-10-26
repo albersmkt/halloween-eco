@@ -5,6 +5,7 @@
 <title>Museu dos Horrores Ambientais</title>
 <link rel="stylesheet" href="style.css">
 <script src="app.js" defer></script>
+<script src="selfie.bundle.js" defer></script>
 </head>
 <body>
 <main aria-label="Experiência em vídeo">
@@ -31,6 +32,23 @@
 <section class="scene" aria-label="Seção 6" id="scene-6" inert>
 <video playsinline preload="metadata" muted poster="media/06.jpg" src="media/06.mp4" aria-label="Ambiente 6 do museu"></video>
 <button class="advance" aria-label="Próximo"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
+</section>
+<section class="scene selfie-scene" id="selfie" aria-label="Selfie no museu" inert>
+<div class="photo-stage">
+<video id="camera" autoplay playsinline muted hidden></video>
+<canvas id="photo" width="1080" height="1920" hidden></canvas>
+<img id="selfie-frame" src="media/selfie-frame.png" alt="Moldura do Museu dos Horrores Ambientais" hidden>
+<output id="countdown" aria-live="assertive"></output>
+</div>
+<div class="selfie-controls">
+<p id="selfie-status" role="status">Leve uma lembrança do museu.</p>
+<button id="activate-camera" class="selfie-button">Ativar câmera</button>
+<button id="capture" class="selfie-button" hidden>Tirar selfie</button>
+<button id="retry-upload" class="selfie-button" hidden>Gerar QR code novamente</button>
+<div id="qr-panel" hidden><canvas id="qr"></canvas><p>Escaneie para baixar sua selfie</p></div>
+<button id="retake" class="selfie-button" hidden>Tirar outra</button>
+<button id="restart" class="selfie-button secondary">Voltar ao início</button>
+</div>
 </section>
 </main><p id="status" class="sr-only" role="status" aria-live="polite"></p>
 </body></html>

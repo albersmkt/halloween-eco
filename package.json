@@ -1,0 +1,30 @@
+{
+  "name": "halloween-eco",
+  "version": "1.0.0",
+  "description": "Experiência interativa Halloween ECOS com selfie e QR code",
+  "main": "app.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "start": "python -m http.server 3000 --bind 0.0.0.0 --directory dist",
+    "test": "node --test tests/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/albersmkt/halloween-eco.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/albersmkt/halloween-eco/issues"
+  },
+  "homepage": "https://github.com/albersmkt/halloween-eco#readme",
+  "dependencies": {
+    "@vercel/blob": "^2.8.2",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -36,10 +36,11 @@ scenes.forEach((scene, index) => {
       next.scrollIntoView({behavior: 'instant', block: 'start'});
       next.querySelector('button').focus({preventScroll:true});
     } else {
-      scene.classList.remove('playing');
-      button.disabled = false;
-      button.setAttribute('aria-label', 'Rever');
-      status.textContent = 'Você chegou ao fim dos seis capítulos.';
+      scene.inert = true;
+      const selfie = document.querySelector('#selfie');
+      selfie.inert = false;
+      selfie.scrollIntoView({behavior: 'instant', block: 'start'});
+      document.querySelector('#activate-camera').focus({preventScroll: true});
     }
   });
 });

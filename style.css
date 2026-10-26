@@ -21,3 +21,19 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:no
 }
 .playing .advance{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.advance{animation:none}}
+
+[hidden]{display:none!important}
+.selfie-scene{font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center}
+.photo-stage{position:absolute;inset:0;margin:auto;aspect-ratio:9/16;height:100%;max-width:100%;overflow:hidden;background:#120620}
+.photo-stage video,.photo-stage canvas,.photo-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-stage video{transform:scaleX(-1)}
+#selfie-frame{pointer-events:none}
+#countdown{position:absolute;inset:0;display:grid;place-items:center;font:bold clamp(90px,20vw,240px) Arial;color:#fff;text-shadow:0 0 25px #ff7300}
+.selfie-controls{position:absolute;bottom:3%;left:50%;transform:translateX(-50%);width:min(90%,540px);display:flex;flex-wrap:wrap;justify-content:center;gap:12px;text-align:center;background:#10051ee8;border:1px solid #ff8a1860;border-radius:24px;padding:18px;color:white}
+.selfie-controls p{width:100%;margin:4px 0;font-size:clamp(14px,2vw,22px)}
+.selfie-button{border:2px solid #ff9c32;border-radius:40px;background:#231006;color:#ffae45;padding:16px 24px;font:600 18px Arial;cursor:pointer;box-shadow:0 0 12px #ff6a0080;animation:neon-pulse 1.8s ease-in-out infinite}
+.selfie-button:disabled{animation:none;opacity:.6;cursor:wait}
+.selfie-button:focus-visible{outline:3px solid white;outline-offset:4px}
+.secondary{animation:none;font-size:14px;padding:12px 18px}
+#qr-panel{width:100%}#qr{width:180px!important;height:180px!important;max-width:100%;border:8px solid white;border-radius:8px}
+@media(prefers-reduced-motion:reduce){.selfie-button{animation:none}}
