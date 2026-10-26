@@ -1,4 +1,4 @@
-const scenes = [...document.querySelectorAll('.scene')];
+const scenes = [...document.querySelectorAll('.scene')].filter(scene => scene.querySelector('.advance'));
 const status = document.querySelector('#status');
 let active = 0;
 let busy = false;

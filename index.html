@@ -42,10 +42,13 @@
 </div>
 <div class="selfie-controls">
 <p id="selfie-status" role="status">Leve uma lembrança do museu.</p>
+<button id="choose-frame" class="selfie-button secondary" hidden>Carregar moldura</button>
+<input id="frame-file" type="file" accept="image/png" hidden>
 <button id="activate-camera" class="selfie-button">Ativar câmera</button>
 <button id="capture" class="selfie-button" hidden>Tirar selfie</button>
 <button id="retry-upload" class="selfie-button" hidden>Gerar QR code novamente</button>
 <div id="qr-panel" hidden><canvas id="qr"></canvas><p>Escaneie para baixar sua selfie</p></div>
+<a id="photo-download" class="selfie-button secondary" hidden>Baixar selfie</a>
 <button id="retake" class="selfie-button" hidden>Tirar outra</button>
 <button id="restart" class="selfie-button secondary">Voltar ao início</button>
 </div>

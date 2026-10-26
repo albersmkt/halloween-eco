@@ -17,7 +17,12 @@ O servidor Python serve `dist` na porta 3000 para verificar os arquivos estátic
 
 ## Moldura necessária
 
-Salvar a arte original em **`media/selfie-frame.png`**, com o centro transparente. A imagem enviada na conversa não foi disponibilizada como arquivo para este ambiente. Até esse arquivo ser incluído, a câmera funciona e permite tirar a selfie sem moldura, com aviso explícito na tela. A ausência da arte não bloqueia a webcam. Não foi criada uma arte substituta.
+A moldura pode ser instalada de duas formas:
+
+- Publicar a arte original como `media/selfie-frame.png`, com o centro transparente.
+- Na tela final do totem, quando a arte estiver ausente, clicar **Carregar moldura** e selecionar o PNG original no próprio computador. O navegador salva esse arquivo em IndexedDB e restaura-o nas próximas visitas ao mesmo domínio. Essa seleção é local ao navegador; não envia o arquivo ao GitHub nem o distribui a outros totens. A foto capturada inclui a arte selecionada.
+
+O caminho `/Users/...` informado no chat pertence ao computador do usuário e não é acessível nesta máquina de desenvolvimento. Não foi criada uma arte substituta. Se o armazenamento do navegador estiver bloqueado, a moldura funciona somente na sessão atual. A câmera também permite selfie sem moldura, com aviso explícito.
 
 ## Vercel
 
@@ -36,3 +41,7 @@ A foto é composta localmente em 1080 × 1920, espelhada como a prévia e com a 
 ## Validação
 
 `npm test` cobre a ordem das seis transições, avanço instantâneo para a selfie, contagem de cinco segundos, composição de câmera e moldura, interrupção da webcam, rejeição de upload inválido e validação de links assinados/expirados. Esses testes usam câmera e armazenamento simulados. Não substituem o teste da webcam física, do Blob real e do download pelo smartphone.
+
+## Se o QR code não aparecer
+
+A tela distingue armazenamento ausente (HTTP 503), falha do Blob/token ou loja incompatível (502), publicação sem API (404), envio bloqueado (403), imagem grande demais (413) e falha de conexão. A selfie permanece no canvas e pode ser reenviada sem nova captura. Conectar o Blob exige um novo deploy para injetar a variável no servidor. O código não produz um QR local que só funcionaria no totem: o upload precisa ser confirmado antes da geração do link.

@@ -13,6 +13,74 @@ let imageBlob;
 let counting = false;
 let frameReady = false;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+let frameObjectURL;
+function frameStore(mode, value) {
+  return new Promise((resolve, reject) => {
+    if (!globalThis.indexedDB) return resolve(undefined);
+    const request = indexedDB.open('ecos-selfie-config', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('settings');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('settings', mode);
+      const store = tx.objectStore('settings');
+      const operation = mode === 'readonly' ? store.get('frame') : store.put(value, 'frame');
+      tx.oncomplete = () => { db.close(); resolve(operation.result); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+      tx.onabort = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+async function useFrame(blob) {
+  const source = URL.createObjectURL(blob);
+  const previous = frame.src;
+  frame.src = source;
+  try {
+    await frame.decode();
+    if (frameObjectURL) URL.revokeObjectURL(frameObjectURL);
+    frameObjectURL = source;
+    frameReady = true;
+    frame.hidden = !photo.hidden;
+  } catch (error) {
+    frame.src = previous;
+    URL.revokeObjectURL(source);
+    throw error;
+  }
+}
+async function initializeFrame() {
+  try {
+    const saved = await frameStore('readonly');
+    if (saved) await useFrame(saved);
+    else { await frame.decode(); frameReady = true; frame.hidden = false; }
+  } catch { frameReady = false; }
+  $('#choose-frame').hidden = frameReady;
+}
+$('#choose-frame').addEventListener('click', () => $('#frame-file').click());
+$('#frame-file').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.type !== 'image/png' || file.size > 12 * 1024 * 1024) {
+    message.textContent = 'Selecione a moldura em PNG de até 12 MB.';
+    return;
+  }
+  try {
+    await useFrame(file);
+    // Apply a newly selected frame to the next capture, not over an old photo.
+    let persisted = false;
+    if (globalThis.indexedDB) {
+      try { await frameStore('readwrite', file); persisted = true; } catch {}
+    }
+    message.textContent = persisted
+      ? 'Moldura aplicada e salva neste navegador. Ative a câmera ou tire outra selfie.'
+      : 'Moldura aplicada nesta sessão. Ative a câmera ou tire outra selfie.';
+    $('#choose-frame').hidden = true;
+  } catch {
+    message.textContent = 'Não foi possível ler a moldura. Selecione o PNG original.';
+  }
+  event.target.value = '';
+});
+const frameInitialization = initializeFrame();
+
 function stopCamera() {
   stream?.getTracks().forEach(track => track.stop());
   stream = null;
@@ -35,16 +103,11 @@ async function activateCamera() {
     camera.srcObject = stream;
     camera.hidden = false;
     await camera.play();
-    frameReady = false;
-    try {
-      await frame.decode();
-      frameReady = true;
-    } catch {
-      // Missing artwork must not prevent camera access or an unframed selfie.
-    }
+    await frameInitialization;
     frame.hidden = !frameReady;
     photo.hidden = true;
     $('#qr-panel').hidden = true;
+    $('#photo-download').hidden = true;
     retry.hidden = true;
     retake.hidden = true;
     activate.hidden = true;
@@ -83,15 +146,30 @@ async function upload() {
       reader.readAsDataURL(imageBlob);
     });
     const response = await fetch('/api/selfie', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({image})});
-    if (!response.ok) throw new Error('upload');
+    if (!response.ok) {
+      const messages = {
+        503: 'O armazenamento de fotos não está configurado. Conecte um Vercel Blob privado ao projeto e refaça o deploy.',
+        502: 'O armazenamento recusou o envio. Confira o token e se o Vercel Blob conectado é privado.',
+        413: 'A foto excedeu o limite de envio. Tente tirar outra selfie.',
+        403: 'O servidor bloqueou o envio. Abra o site pelo endereço principal da Vercel.',
+        404: 'O servidor de fotos não está disponível nesta publicação. Confira o deploy na Vercel.'
+      };
+      throw new Error(messages[response.status] || `Falha ao enviar a foto (HTTP ${response.status}). Tente novamente.`);
+    }
     const {downloadPath} = await response.json();
     const url = new URL(downloadPath, location.origin);
     if (url.origin !== location.origin || url.pathname !== '/api/download') throw new Error('url');
-    await QRCode.toCanvas($('#qr'), url.href, {width:256, margin:4, errorCorrectionLevel:'M'});
+    $('#photo-download').href = url.href;
+    $('#photo-download').hidden = false;
+    try {
+      await QRCode.toCanvas($('#qr'), url.href, {width:320, margin:4, errorCorrectionLevel:'M'});
+    } catch {
+      throw new Error('A foto foi enviada, mas o QR code não pôde ser desenhado. Use o botão Baixar selfie.');
+    }
     $('#qr-panel').hidden = false;
     message.textContent = 'Sua selfie está pronta! O link funciona por 24 horas.';
-  } catch {
-    message.textContent = 'Não foi possível gerar o link. Sua foto continua nesta tela; tente novamente.';
+  } catch (error) {
+    message.textContent = (error.message === 'Failed to fetch' ? 'Falha de conexão com o servidor de fotos.' : error.message) + ' Sua foto continua nesta tela.';
     retry.hidden = false;
   } finally {
     retake.disabled = false;

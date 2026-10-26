@@ -25,7 +25,7 @@ test('six video sections advance instantly to selfie only after completion', asy
     return {handlers,clicks,button,video,querySelector:s=>s==='video'?video:button,classList:{add(){},remove(){}},scrollIntoView(options){this.options=options}};
   });
   const selfie={scrollIntoView(options){this.options=options}},activate={focus(){this.focused=true}};
-  vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelectorAll:()=>scenes,querySelector:s=>s==='#selfie'?selfie:s==='#activate-camera'?activate:{}},window:{addEventListener(){},scrollTo(){}},history:{}});
+  vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelectorAll:()=>[...scenes,{querySelector:()=>null}],querySelector:s=>s==='#selfie'?selfie:s==='#activate-camera'?activate:{}},window:{addEventListener(){},scrollTo(){}},history:{}});
   for(let i=0;i<6;i++){
     await scenes[i].clicks.click();assert(scenes[i].video.played);
     if(i<5)assert(!scenes[i+1].options);else assert(!selfie.options);
@@ -34,7 +34,7 @@ test('six video sections advance instantly to selfie only after completion', asy
   }
   assert.equal(selfie.inert,false);assert(activate.focused);
 });
-test('capture waits five seconds, mirrors camera and composites frame into JPEG', async () => {
+for (const uploadStatus of [201,503,502]) test(`capture composites frame; upload HTTP ${uploadStatus} has correct UI`, async () => {
   const elements={},draws=[],delays=[];
   const element=id=>elements[id]??=( {hidden:false,disabled:false,textContent:'',listeners:{},addEventListener(n,f){this.listeners[n]=f}} );
   const camera=element('#camera');Object.assign(camera,{readyState:2,videoWidth:1920,videoHeight:1080,play:async()=>{}});
@@ -42,11 +42,14 @@ test('capture waits five seconds, mirrors camera and composites frame into JPEG'
   const frame=element('#selfie-frame');Object.assign(frame,{decode:async()=>{},complete:true,naturalWidth:941});
   let stopped=false;
   const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
-  vm.runInNewContext(source,{document:{querySelector:element},navigator:{mediaDevices:{getUserMedia:async()=>({active:true,getTracks:()=>[{stop(){stopped=true}}]})}},window:{addEventListener(){}},location:{origin:'https://museum.example',reload(){}},setTimeout(fn,ms){delays.push(ms);fn()},Blob,FileReader:class{readAsDataURL(){this.result='data:image/jpeg;base64,Zm9v';this.onload()}},fetch:async()=>({ok:true,json:async()=>({downloadPath:'/api/download?id=test'})}),URL,QRCode:{toCanvas:async()=>{}}});
+  vm.runInNewContext(source,{document:{querySelector:element},navigator:{mediaDevices:{getUserMedia:async()=>({active:true,getTracks:()=>[{stop(){stopped=true}}]})}},window:{addEventListener(){}},location:{origin:'https://museum.example',reload(){}},setTimeout(fn,ms){delays.push(ms);fn()},Blob,FileReader:class{readAsDataURL(){this.result='data:image/jpeg;base64,Zm9v';this.onload()}},fetch:async()=>({ok:uploadStatus===201,status:uploadStatus,json:async()=>({downloadPath:'/api/download?id=test'})}),URL,QRCode:{toCanvas:async()=>{}}});
   await element('#activate-camera').listeners.click();
   await element('#capture').listeners.click();
   assert.deepEqual(delays,[1000,1000,1000,1000,1000]);
-  assert.deepEqual(draws,[camera,frame]);assert(stopped);assert.equal(element('#qr-panel').hidden,false);
+  assert.deepEqual(draws,[camera,frame]);assert(stopped);assert.equal(element('#qr-panel').hidden,uploadStatus!==201);
+  if(uploadStatus===503)assert.match(element('#selfie-status').textContent,/não está configurado/);
+  if(uploadStatus===502)assert.match(element('#selfie-status').textContent,/armazenamento recusou/);
+  if(uploadStatus!==201)assert.equal(element('#retry-upload').hidden,false);
 });
 
 test('missing frame does not block webcam; permission error is not masked by artwork failure', async () => {
@@ -63,4 +66,25 @@ test('missing frame does not block webcam; permission error is not masked by art
     if(denied){assert.match(element('#selfie-status').textContent,/Acesso à câmera bloqueado/);assert.equal(element('#activate-camera').hidden,false)}
     else {assert.equal(element('#camera').hidden,false);assert.equal(element('#capture').hidden,false);assert.match(element('#selfie-status').textContent,/sem a moldura/)}
   }
+});
+
+test('selecting PNG saves exact file in IndexedDB and restores frame on reload', async () => {
+  let saved;
+  const db={close(){},objectStoreNames:{},createObjectStore(){},transaction(){
+    const tx={objectStore:()=>({get(){const op={result:saved};queueMicrotask(()=>tx.oncomplete());return op},put(value){saved=value;const op={};queueMicrotask(()=>tx.oncomplete());return op}})};return tx;
+  }};
+  const indexedDB={open(){const request={result:db};queueMicrotask(()=>request.onsuccess());return request}};
+  const source=fs.readFileSync('selfie.js','utf8').replace("import QRCode from 'qrcode';",'');
+  function page(){
+    const elements={};const element=id=>elements[id]??={hidden:true,listeners:{},addEventListener(n,f){this.listeners[n]=f}};
+    element('#selfie-frame').decode=async()=>{if(!element('#selfie-frame').src?.startsWith('blob:'))throw Error('not found')};
+    vm.runInNewContext(source,{document:{querySelector:element},indexedDB,window:{addEventListener(){}},URL,setTimeout});return element;
+  }
+  const first=page();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(first('#choose-frame').hidden,false);
+  const original=new Blob(['original artwork'],{type:'image/png'});
+  await first('#frame-file').listeners.change({target:{files:[original]}});
+  assert.equal(saved,original);assert.match(first('#selfie-frame').src,/^blob:/);assert.equal(first('#selfie-frame').hidden,false);
+  const second=page();await new Promise(resolve=>setImmediate(resolve));
+  assert.match(second('#selfie-frame').src,/^blob:/);assert.equal(second('#selfie-frame').hidden,false);assert.equal(second('#choose-frame').hidden,true);
 });
