@@ -26,7 +26,7 @@ test('six video sections advance instantly to selfie only after completion', asy
   });
   let cameraEntry=false;
   const selfie={scrollIntoView(options){this.options=options}},activate={focus(){this.focused=true}};
-  vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelectorAll:()=>[...scenes,{querySelector:()=>null}],querySelector:s=>s==='#selfie'?selfie:s==='#capture'?activate:{}},window:{addEventListener(){},scrollTo(){},dispatchEvent(event){cameraEntry=event.type==='selfie:enter'}},Event,history:{}});
+  vm.runInNewContext(fs.readFileSync('app.js','utf8'),{document:{querySelectorAll:()=>[...scenes,{querySelector:()=>null}],querySelector:s=>s==='#selfie'?selfie:s==='#capture'?activate:{}},window:{addEventListener(){},scrollTo(){},dispatchEvent(event){if(event.type==='selfie:enter')cameraEntry=true}},Event,history:{}});
   for(let i=0;i<6;i++){
     await scenes[i].clicks.click();assert(scenes[i].video.played);
     if(i<5)assert(!scenes[i+1].options);else assert(!selfie.options);

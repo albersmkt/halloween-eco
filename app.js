@@ -37,6 +37,7 @@ scenes.forEach((scene, index) => {
       next.inert = false;
       next.scrollIntoView({behavior: 'instant', block: 'start'});
       next.querySelector('button').focus({preventScroll:true});
+      window.dispatchEvent?.(new Event('kiosk:advance'));
     } else {
       scene.inert = true;
       const selfie = document.querySelector('#selfie');
