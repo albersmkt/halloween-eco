@@ -11,6 +11,8 @@ scenes.forEach((scene, index) => {
     status.textContent = '';
     button.disabled = true;
     video.currentTime = 0;
+    video.muted = false;
+    video.volume = 1;
     try {
       await video.play();
       scene.classList.add('playing');
