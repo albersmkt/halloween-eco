@@ -19,7 +19,7 @@ O servidor Python serve `dist` na porta 3000 para verificar os arquivos estátic
 
 A moldura é aplicada automaticamente à prévia e incorporada ao JPEG. Não há seletor de arquivo para visitantes. O arquivo fixo esperado é `media/selfie-frame.png`, com centro transparente. Como compatibilidade, o totem também restaura automaticamente a arte já instalada em IndexedDB nesse navegador nas versões anteriores.
 
-O PNG original ainda não está disponível no checkout: o caminho `/Users/...` pertence ao computador do usuário. Até o arquivo ser incluído no projeto, a arte já instalada só é restaurada no mesmo navegador e domínio. Outros dispositivos e navegadores sem essa configuração continuam sem moldura; não foi criada uma arte substituta.
+O PNG original está incluído em `media/selfie-frame.png` (941 × 1672, RGBA, centro transparente), extraído do ZIP fornecido pelo usuário. O build copia esse arquivo para `dist/media/selfie-frame.png`, disponibilizando a mesma moldura a todos os dispositivos sem configuração local.
 
 ## Vercel
 
